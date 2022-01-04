@@ -73,10 +73,13 @@ export async function getData({
   chainId: ChainId | undefined
   options: TradeOptions | TradeOptionsDeadline
   feeConfig: FeeConfig | undefined
-}): Promise<SwapV2Parameters | undefined> {
+}): Promise<{ outputAmount: string | undefined; swapV2Parameters: SwapV2Parameters | undefined }> {
   const trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
   if (!trade) {
-    return undefined
+    return {
+      swapV2Parameters: undefined,
+      outputAmount: undefined,
+    }
   }
   const etherIn = trade.inputAmount.currency === ETHER
   const etherOut = trade.outputAmount.currency === ETHER
@@ -262,8 +265,11 @@ export async function getData({
   }
 
   return {
-    methodNames,
-    args,
-    value,
+    swapV2Parameters: {
+      methodNames,
+      args,
+      value,
+    },
+    outputAmount: trade.outputAmount.raw.toString(),
   }
 }
