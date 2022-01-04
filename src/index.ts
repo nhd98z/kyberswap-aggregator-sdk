@@ -80,16 +80,21 @@ export async function getData({
   isUseSwapSimpleMode: boolean | undefined
   tradeSwaps: any[][] | undefined
 }> {
-  const trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
+  let trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
   if (!trade) {
     return {
-      swapV2Parameters: undefined,
       outputAmount: undefined,
+      swapV2Parameters: undefined,
       rawExecutorData: undefined,
       isUseSwapSimpleMode: undefined,
       tradeSwaps: undefined,
     }
   }
+  const fakeSwaps: any[][] = JSON.parse(
+    '[[{"pool":"0x3367ced34cba9b958e3fdbd715c9117e0027f69a","tokenIn":"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c","tokenOut":"0xe9e7cea3dedca5984780bafc599bd69add087d56","swapAmount":"1000000000000","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"firebird","poolLength":2,"poolType":"firebird"},{"pool":"0xb0aebbc35d98387c63a6e87cd2cf67ec2e5a5851","tokenIn":"0xe9e7cea3dedca5984780bafc599bd69add087d56","tokenOut":"0x2170ed0880ac9a755fd29b2688956bd959f933f8","swapAmount":"0","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"apeswap","poolLength":2,"poolType":"uni"},{"pool":"0x49f764ee3ea8a18901c3f2662b0b76422ed57d74","tokenIn":"0x2170ed0880ac9a755fd29b2688956bd959f933f8","tokenOut":"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","swapAmount":"0","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"biswap","poolLength":2,"poolType":"uni"},{"pool":"0xcd1e0b85b72ea3ecdf8a4b79c7bf9bcff5113829","tokenIn":"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","tokenOut":"0x55d398326f99059ff775485246999027b3197955","swapAmount":"0","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"apeswap","poolLength":2,"poolType":"uni"}]]'
+  )
+  // const fakeSwaps = trade.swaps
+  console.log(`trade.swaps`, JSON.stringify(trade.swaps))
   const etherIn = trade.inputAmount.currency === ETHER
   const etherOut = trade.outputAmount.currency === ETHER
   // the router does not support both ether in and out
@@ -106,7 +111,7 @@ export async function getData({
       ? `0x${(Math.floor(new Date().getTime() / 1000) + options.ttl).toString(16)}`
       : `0x${options.deadline.toString(16)}`
   const destTokenFeeData =
-    feeConfig && feeConfig.chargeFeeBy === 'tokenOut'
+    feeConfig && feeConfig.chargeFeeBy === 'currency_out'
       ? encodeFeeConfig({
           feeReceiver: feeConfig.feeReceiver,
           isInBps: feeConfig.isInBps,
@@ -135,15 +140,15 @@ export async function getData({
       )
       const src: { [p: string]: BigNumber } = {}
       const isEncodeUniswap = isEncodeUniswapCallback(chainId ?? ChainId.MAINNET)
-      if (feeConfig && feeConfig.chargeFeeBy === 'tokenIn') {
+      if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
         const { feeReceiver, isInBps, feeAmount } = feeConfig
         src[feeReceiver] = isInBps ? BigNumber.from(amountIn).mul(feeAmount).div('100') : BigNumber.from(feeAmount)
       }
       // Use swap simple mode when tokenIn is not ETH and every firstPool is encoded by uniswap.
       isUseSwapSimpleMode = !etherIn
       if (isUseSwapSimpleMode) {
-        for (let i = 0; i < trade.swaps.length; i++) {
-          const sequence = trade.swaps[i]
+        for (let i = 0; i < fakeSwaps.length; i++) {
+          const sequence = fakeSwaps[i]
           const firstPool = sequence[0]
           if (!isEncodeUniswap(firstPool)) {
             isUseSwapSimpleMode = false
@@ -154,7 +159,7 @@ export async function getData({
       const getSwapSimpleModeArgs = () => {
         const firstPools: string[] = []
         const firstSwapAmounts: string[] = []
-        trade.swaps.forEach((sequence) => {
+        fakeSwaps.forEach((sequence) => {
           for (let i = 0; i < sequence.length; i++) {
             if (i === 0) {
               const firstPool = sequence[0]
@@ -165,7 +170,7 @@ export async function getData({
               }
               if (sequence.length === 1 && isEncodeUniswap(firstPool)) {
                 firstPool.recipient =
-                  etherOut || feeConfig?.chargeFeeBy === 'tokenOut' ? aggregationExecutorAddress : to
+                  etherOut || feeConfig?.chargeFeeBy === 'currency_out' ? aggregationExecutorAddress : to
               }
             } else {
               const A = sequence[i - 1]
@@ -179,12 +184,12 @@ export async function getData({
                 A.recipient = aggregationExecutorAddress
               }
               if (i === sequence.length - 1 && isEncodeUniswap(B)) {
-                B.recipient = etherOut || feeConfig?.chargeFeeBy === 'tokenOut' ? aggregationExecutorAddress : to
+                B.recipient = etherOut || feeConfig?.chargeFeeBy === 'currency_out' ? aggregationExecutorAddress : to
               }
             }
           }
         })
-        const swapSequences = encodeSwapExecutor(trade.swaps, chainId ?? ChainId.MAINNET)
+        const swapSequences = encodeSwapExecutor(fakeSwaps, chainId ?? ChainId.MAINNET)
         const sumSrcAmounts = Object.values(src).reduce((sum, value) => sum.add(value), BigNumber.from('0'))
         const sumFirstSwapAmounts = firstSwapAmounts.reduce((sum, value) => sum.add(value), BigNumber.from('0'))
         const amount = sumSrcAmounts.add(sumFirstSwapAmounts).toString()
@@ -216,7 +221,7 @@ export async function getData({
         }
       }
       const getSwapNormalModeArgs = () => {
-        trade.swaps.forEach((sequence) => {
+        fakeSwaps.forEach((sequence) => {
           for (let i = 0; i < sequence.length; i++) {
             if (i === 0) {
               const firstPool = sequence[0]
@@ -234,7 +239,7 @@ export async function getData({
               }
               if (sequence.length === 1 && isEncodeUniswap(firstPool)) {
                 firstPool.recipient =
-                  etherOut || feeConfig?.chargeFeeBy === 'tokenOut' ? aggregationExecutorAddress : to
+                  etherOut || feeConfig?.chargeFeeBy === 'currency_out' ? aggregationExecutorAddress : to
               }
             } else {
               const A = sequence[i - 1]
@@ -248,12 +253,12 @@ export async function getData({
                 A.recipient = aggregationExecutorAddress
               }
               if (i === sequence.length - 1 && isEncodeUniswap(B)) {
-                B.recipient = etherOut || feeConfig?.chargeFeeBy === 'tokenOut' ? aggregationExecutorAddress : to
+                B.recipient = etherOut || feeConfig?.chargeFeeBy === 'currency_out' ? aggregationExecutorAddress : to
               }
             }
           }
         })
-        const swapSequences = encodeSwapExecutor(trade.swaps, chainId ?? ChainId.MAINNET)
+        const swapSequences = encodeSwapExecutor(fakeSwaps, chainId ?? ChainId.MAINNET)
         const swapDesc = [
           tokenIn,
           tokenOut,
@@ -292,6 +297,6 @@ export async function getData({
     outputAmount: trade.outputAmount.raw.toString(),
     isUseSwapSimpleMode,
     rawExecutorData,
-    tradeSwaps: trade.swaps,
+    tradeSwaps: fakeSwaps,
   }
 }

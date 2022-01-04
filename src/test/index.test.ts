@@ -34,7 +34,7 @@ test('the fetch fails with an error', async () => {
     const asyncFunc = async () => {
       const data = await getData({
         currencyAmountIn: CurrencyAmount.ether('1000000000000'),
-        currencyOut: new Token(ChainId.BSCMAINNET, '0xfe56d5892BDffC7BF58f2E84BE1b2C32D21C308b', 18, 'KNC'),
+        currencyOut: new Token(ChainId.BSCMAINNET, '0x55d398326f99059fF775485246999027B3197955', 18),
         saveGas: false,
         chainId: ChainId.BSCMAINNET,
         options: {
@@ -44,7 +44,7 @@ test('the fetch fails with an error', async () => {
         },
         feeConfig: undefined,
       })
-      console.log(`data`, data)
+      console.log(`data`, JSON.stringify(data.swapV2Parameters))
     }
     await asyncFunc()
   } catch (e) {

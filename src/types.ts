@@ -1,5 +1,5 @@
 export interface FeeConfig {
-  chargeFeeBy: 'tokenIn' | 'tokenOut'
+  chargeFeeBy: 'currency_in' | 'currency_out'
   feeReceiver: string
   isInBps: boolean
   feeAmount: string
