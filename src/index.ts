@@ -73,12 +73,21 @@ export async function getData({
   chainId: ChainId | undefined
   options: TradeOptions | TradeOptionsDeadline
   feeConfig: FeeConfig | undefined
-}): Promise<{ outputAmount: string | undefined; swapV2Parameters: SwapV2Parameters | undefined }> {
+}): Promise<{
+  outputAmount: string | undefined
+  swapV2Parameters: SwapV2Parameters | undefined
+  rawExecutorData: unknown
+  isUseSwapSimpleMode: boolean | undefined
+  tradeSwaps: any[][] | undefined
+}> {
   const trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
   if (!trade) {
     return {
       swapV2Parameters: undefined,
       outputAmount: undefined,
+      rawExecutorData: undefined,
+      isUseSwapSimpleMode: undefined,
+      tradeSwaps: undefined,
     }
   }
   const etherIn = trade.inputAmount.currency === ETHER
@@ -107,6 +116,8 @@ export async function getData({
   let methodNames: string[] = []
   let args: Array<string | Array<string | string[]>> = []
   let value: string = ZERO_HEX
+  let rawExecutorData: unknown = undefined
+  let isUseSwapSimpleMode: boolean | undefined
 
   switch (trade.tradeType) {
     case TradeType.EXACT_INPUT: {
@@ -129,7 +140,7 @@ export async function getData({
         src[feeReceiver] = isInBps ? BigNumber.from(amountIn).mul(feeAmount).div('100') : BigNumber.from(feeAmount)
       }
       // Use swap simple mode when tokenIn is not ETH and every firstPool is encoded by uniswap.
-      let isUseSwapSimpleMode = !etherIn
+      isUseSwapSimpleMode = !etherIn
       if (isUseSwapSimpleMode) {
         for (let i = 0; i < trade.swaps.length; i++) {
           const sequence = trade.swaps[i]
@@ -196,6 +207,13 @@ export async function getData({
           destTokenFeeData,
         })
         args = [aggregationExecutorAddress, swapDesc, executorDataForSwapSimpleMode]
+        rawExecutorData = {
+          firstPools,
+          firstSwapAmounts,
+          swapSequences,
+          deadline,
+          destTokenFeeData,
+        }
       }
       const getSwapNormalModeArgs = () => {
         trade.swaps.forEach((sequence) => {
@@ -253,6 +271,7 @@ export async function getData({
         // Remove method id (slice 10).
         executorData = '0x' + executorData.slice(10)
         args = [aggregationExecutorAddress, swapDesc, executorData]
+        rawExecutorData = [swapSequences, tokenIn, tokenOut, amountOut, to, deadline, destTokenFeeData]
       }
       if (isUseSwapSimpleMode) {
         getSwapSimpleModeArgs()
@@ -271,5 +290,8 @@ export async function getData({
       value,
     },
     outputAmount: trade.outputAmount.raw.toString(),
+    isUseSwapSimpleMode,
+    rawExecutorData,
+    tradeSwaps: trade.swaps,
   }
 }
