@@ -43,6 +43,7 @@ test('the fetch fails with an error', async () => {
           deadline: 1640937396000000000,
         },
         feeConfig: undefined,
+        customTradeRoute: undefined,
       })
       console.log(`data`, JSON.stringify(data.swapV2Parameters))
     }

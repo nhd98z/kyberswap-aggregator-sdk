@@ -66,6 +66,7 @@ export async function getData({
   chainId,
   options,
   feeConfig,
+  customTradeRoute,
 }: {
   currencyAmountIn: CurrencyAmount | undefined
   currencyOut: Currency | undefined
@@ -73,12 +74,13 @@ export async function getData({
   chainId: ChainId | undefined
   options: TradeOptions | TradeOptionsDeadline
   feeConfig: FeeConfig | undefined
+  customTradeRoute: string | undefined
 }): Promise<{
   outputAmount: string | undefined
   swapV2Parameters: SwapV2Parameters | undefined
   rawExecutorData: unknown
   isUseSwapSimpleMode: boolean | undefined
-  tradeSwaps: any[][] | undefined
+  tradeRoute: any[][] | undefined
 }> {
   let trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
   if (!trade) {
@@ -87,14 +89,10 @@ export async function getData({
       swapV2Parameters: undefined,
       rawExecutorData: undefined,
       isUseSwapSimpleMode: undefined,
-      tradeSwaps: undefined,
+      tradeRoute: undefined,
     }
   }
-  const fakeSwaps: any[][] = JSON.parse(
-    '[[{"pool":"0x3367ced34cba9b958e3fdbd715c9117e0027f69a","tokenIn":"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c","tokenOut":"0xe9e7cea3dedca5984780bafc599bd69add087d56","swapAmount":"1000000000000","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"firebird","poolLength":2,"poolType":"firebird"},{"pool":"0xb0aebbc35d98387c63a6e87cd2cf67ec2e5a5851","tokenIn":"0xe9e7cea3dedca5984780bafc599bd69add087d56","tokenOut":"0x2170ed0880ac9a755fd29b2688956bd959f933f8","swapAmount":"0","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"apeswap","poolLength":2,"poolType":"uni"},{"pool":"0x49f764ee3ea8a18901c3f2662b0b76422ed57d74","tokenIn":"0x2170ed0880ac9a755fd29b2688956bd959f933f8","tokenOut":"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","swapAmount":"0","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"biswap","poolLength":2,"poolType":"uni"},{"pool":"0xcd1e0b85b72ea3ecdf8a4b79c7bf9bcff5113829","tokenIn":"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","tokenOut":"0x55d398326f99059ff775485246999027b3197955","swapAmount":"0","amountOut":"0","limitReturnAmount":"0","maxPrice":"115792089237316195423570985008687907853269984665640564039457584007913129639935","exchange":"apeswap","poolLength":2,"poolType":"uni"}]]'
-  )
-  // const fakeSwaps = trade.swaps
-  console.log(`trade.swaps`, JSON.stringify(trade.swaps))
+  const tradeRoute: any[][] = customTradeRoute ? JSON.parse(customTradeRoute) : trade.swaps
   const etherIn = trade.inputAmount.currency === ETHER
   const etherOut = trade.outputAmount.currency === ETHER
   // the router does not support both ether in and out
@@ -147,8 +145,8 @@ export async function getData({
       // Use swap simple mode when tokenIn is not ETH and every firstPool is encoded by uniswap.
       isUseSwapSimpleMode = !etherIn
       if (isUseSwapSimpleMode) {
-        for (let i = 0; i < fakeSwaps.length; i++) {
-          const sequence = fakeSwaps[i]
+        for (let i = 0; i < tradeRoute.length; i++) {
+          const sequence = tradeRoute[i]
           const firstPool = sequence[0]
           if (!isEncodeUniswap(firstPool)) {
             isUseSwapSimpleMode = false
@@ -159,7 +157,7 @@ export async function getData({
       const getSwapSimpleModeArgs = () => {
         const firstPools: string[] = []
         const firstSwapAmounts: string[] = []
-        fakeSwaps.forEach((sequence) => {
+        tradeRoute.forEach((sequence) => {
           for (let i = 0; i < sequence.length; i++) {
             if (i === 0) {
               const firstPool = sequence[0]
@@ -189,7 +187,7 @@ export async function getData({
             }
           }
         })
-        const swapSequences = encodeSwapExecutor(fakeSwaps, chainId ?? ChainId.MAINNET)
+        const swapSequences = encodeSwapExecutor(tradeRoute, chainId ?? ChainId.MAINNET)
         const sumSrcAmounts = Object.values(src).reduce((sum, value) => sum.add(value), BigNumber.from('0'))
         const sumFirstSwapAmounts = firstSwapAmounts.reduce((sum, value) => sum.add(value), BigNumber.from('0'))
         const amount = sumSrcAmounts.add(sumFirstSwapAmounts).toString()
@@ -221,7 +219,7 @@ export async function getData({
         }
       }
       const getSwapNormalModeArgs = () => {
-        fakeSwaps.forEach((sequence) => {
+        tradeRoute.forEach((sequence) => {
           for (let i = 0; i < sequence.length; i++) {
             if (i === 0) {
               const firstPool = sequence[0]
@@ -258,7 +256,7 @@ export async function getData({
             }
           }
         })
-        const swapSequences = encodeSwapExecutor(fakeSwaps, chainId ?? ChainId.MAINNET)
+        const swapSequences = encodeSwapExecutor(tradeRoute, chainId ?? ChainId.MAINNET)
         const swapDesc = [
           tokenIn,
           tokenOut,
@@ -297,6 +295,6 @@ export async function getData({
     outputAmount: trade.outputAmount.raw.toString(),
     isUseSwapSimpleMode,
     rawExecutorData,
-    tradeSwaps: fakeSwaps,
+    tradeRoute,
   }
 }
