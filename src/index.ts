@@ -140,7 +140,7 @@ export async function getData({
       const isEncodeUniswap = isEncodeUniswapCallback(chainId ?? ChainId.MAINNET)
       if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
         const { feeReceiver, isInBps, feeAmount } = feeConfig
-        src[feeReceiver] = isInBps ? BigNumber.from(amountIn).mul(feeAmount).div('100') : BigNumber.from(feeAmount)
+        src[feeReceiver] = isInBps ? BigNumber.from(amountIn).mul(feeAmount).div('10000') : BigNumber.from(feeAmount)
       }
       // Use swap simple mode when tokenIn is not ETH and every firstPool is encoded by uniswap.
       isUseSwapSimpleMode = !etherIn
