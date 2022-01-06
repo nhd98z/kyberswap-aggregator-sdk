@@ -59,6 +59,35 @@ export async function getTradeExactInV2(
   }
 }
 
+export default async function getSwapParameters({
+  currencyAmountIn,
+  currencyOut,
+  saveGas,
+  chainId,
+  options,
+  feeConfig,
+  customTradeRoute,
+}: {
+  currencyAmountIn: CurrencyAmount | undefined
+  currencyOut: Currency | undefined
+  saveGas: boolean
+  chainId: ChainId | undefined
+  options: TradeOptions | TradeOptionsDeadline
+  feeConfig: FeeConfig | undefined
+  customTradeRoute: string | undefined
+}): Promise<SwapV2Parameters | undefined> {
+  const result = await getData({
+    currencyAmountIn,
+    currencyOut,
+    saveGas,
+    chainId,
+    options,
+    feeConfig,
+    customTradeRoute,
+  })
+  return result.swapV2Parameters
+}
+
 export async function getData({
   currencyAmountIn,
   currencyOut,
