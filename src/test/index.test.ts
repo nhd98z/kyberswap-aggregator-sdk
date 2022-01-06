@@ -50,7 +50,7 @@ test('the fetch fails with an error', async () => {
         },
         customTradeRoute: undefined,
       })
-      console.log(`data`, JSON.stringify(data.swapV2Parameters?.args))
+      console.log(`data`, data.swapV2Parameters?.value)
     }
     await asyncFunc()
   } catch (e) {

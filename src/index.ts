@@ -288,9 +288,9 @@ export async function getData({
       if (etherIn) {
         if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
           if (feeConfig.isInBps) {
-            value = BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000).toString()
+            value = BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000).toHexString()
           } else {
-            value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toString()
+            value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
           }
         } else {
           value = amountIn
