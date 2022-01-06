@@ -287,8 +287,11 @@ export async function getData({
       }
       if (etherIn) {
         if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
+          console.log(`feeConfig`, feeConfig)
           if (feeConfig.isInBps) {
-            value = BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000).toHexString()
+            value = BigNumber.from(amountIn)
+              .add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000))
+              .toHexString()
           } else {
             value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
           }
