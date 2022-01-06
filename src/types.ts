@@ -1,3 +1,5 @@
+import { ChainId, Currency, CurrencyAmount, TradeOptions, TradeOptionsDeadline } from '@dynamic-amm/sdk'
+
 export interface FeeConfig {
   chargeFeeBy: 'currency_in' | 'currency_out'
   feeReceiver: string
@@ -22,4 +24,14 @@ export interface SwapV2Parameters {
    * The amount of wei to send in hex.
    */
   value: string
+}
+
+export interface GetSwapParametersParams {
+  currencyAmountIn: CurrencyAmount | undefined
+  currencyOut: Currency | undefined
+  saveGas: boolean
+  chainId: ChainId | undefined
+  options: TradeOptions | TradeOptionsDeadline
+  feeConfig: FeeConfig | undefined
+  customTradeRoute: string | undefined
 }

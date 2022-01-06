@@ -1,15 +1,6 @@
 import { BigNumber } from 'ethers'
 import invariant from 'tiny-invariant'
-import {
-  ChainId,
-  Currency,
-  CurrencyAmount,
-  ETHER,
-  TradeOptions,
-  TradeOptionsDeadline,
-  TradeType,
-  validateAndParseAddress,
-} from '@dynamic-amm/sdk'
+import { ChainId, Currency, CurrencyAmount, ETHER, TradeType, validateAndParseAddress } from '@dynamic-amm/sdk'
 import {
   Aggregator,
   encodeFeeConfig,
@@ -18,7 +9,7 @@ import {
   isEncodeUniswapCallback,
 } from './aggregator'
 import { providers, routerUri, ZERO_HEX } from './config'
-import { FeeConfig, SwapV2Parameters } from './types'
+import { GetSwapParametersParams, SwapV2Parameters } from './types'
 
 import {
   getAggregationExecutorAddress,
@@ -67,15 +58,7 @@ export default async function getSwapParameters({
   options,
   feeConfig,
   customTradeRoute,
-}: {
-  currencyAmountIn: CurrencyAmount | undefined
-  currencyOut: Currency | undefined
-  saveGas: boolean
-  chainId: ChainId | undefined
-  options: TradeOptions | TradeOptionsDeadline
-  feeConfig: FeeConfig | undefined
-  customTradeRoute: string | undefined
-}): Promise<SwapV2Parameters | undefined> {
+}: GetSwapParametersParams): Promise<SwapV2Parameters | undefined> {
   const result = await getData({
     currencyAmountIn,
     currencyOut,
@@ -96,15 +79,7 @@ export async function getData({
   options,
   feeConfig,
   customTradeRoute,
-}: {
-  currencyAmountIn: CurrencyAmount | undefined
-  currencyOut: Currency | undefined
-  saveGas: boolean
-  chainId: ChainId | undefined
-  options: TradeOptions | TradeOptionsDeadline
-  feeConfig: FeeConfig | undefined
-  customTradeRoute: string | undefined
-}): Promise<{
+}: GetSwapParametersParams): Promise<{
   outputAmount: string | undefined
   swapV2Parameters: SwapV2Parameters | undefined
   rawExecutorData: unknown
@@ -310,7 +285,17 @@ export async function getData({
       } else {
         getSwapNormalModeArgs()
       }
-      value = etherIn ? amountIn : ZERO_HEX
+      if (etherIn) {
+        if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
+          if (feeConfig.isInBps) {
+            value = BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000).toString()
+          } else {
+            value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toString()
+          }
+        } else {
+          value = amountIn
+        }
+      }
       break
     }
   }
