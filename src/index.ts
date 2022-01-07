@@ -376,3 +376,5 @@ export async function getData({
     tradeRoute,
   }
 }
+
+export { ETHER_ADDRESS } from './config/index'
