@@ -103,20 +103,20 @@ function parseInput({
   options: TradeOptions | TradeOptionsDeadline
   saveGas: boolean
 } {
-  const currencyAmountIn: CurrencyAmount =
-    currencyInAddress === ETHER_ADDRESS
-      ? CurrencyAmount.ether(
-          feeConfig && feeConfig.chargeFeeBy === 'currency_in'
-            ? feeConfig.isInBps
-              ? BigNumber.from(amountIn).add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000)).toString()
-              : BigNumber.from(amountIn).add(feeConfig.feeAmount).toString()
-            : amountIn
-        )
-      : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
   // const currencyAmountIn: CurrencyAmount =
   //   currencyInAddress === ETHER_ADDRESS
-  //     ? CurrencyAmount.ether(amountIn)
+  //     ? CurrencyAmount.ether(
+  //         feeConfig && feeConfig.chargeFeeBy === 'currency_in'
+  //           ? feeConfig.isInBps
+  //             ? BigNumber.from(amountIn).add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000)).toString()
+  //             : BigNumber.from(amountIn).add(feeConfig.feeAmount).toString()
+  //           : amountIn
+  //       )
   //     : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
+  const currencyAmountIn: CurrencyAmount =
+    currencyInAddress === ETHER_ADDRESS
+      ? CurrencyAmount.ether(amountIn)
+      : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
   const currencyOut: Currency =
     currencyOutAddress === ETHER_ADDRESS ? Currency.ETHER : new Token(chainId, currencyOutAddress, currencyOutDecimal)
 

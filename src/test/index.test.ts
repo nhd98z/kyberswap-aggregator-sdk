@@ -25,7 +25,7 @@ test('Get swapV2Parameters', async () => {
         },
         customTradeRoute: undefined,
       })
-      console.log(`swapV2Parameters`, JSON.stringify(data.swapV2Parameters))
+      console.log(`swapV2Parameters`, JSON.stringify(data.swapV2Parameters?.args))
     }
     await asyncFunc()
   } catch (err) {
