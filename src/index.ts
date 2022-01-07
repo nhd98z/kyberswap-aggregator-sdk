@@ -1,6 +1,18 @@
 import { BigNumber } from 'ethers'
 import invariant from 'tiny-invariant'
-import { ChainId, Currency, CurrencyAmount, ETHER, TradeType, validateAndParseAddress } from '@dynamic-amm/sdk'
+import {
+  ChainId,
+  Currency,
+  CurrencyAmount,
+  ETHER,
+  Percent,
+  Token,
+  TokenAmount,
+  TradeOptions,
+  TradeOptionsDeadline,
+  TradeType,
+  validateAndParseAddress,
+} from '@dynamic-amm/sdk'
 import {
   Aggregator,
   encodeFeeConfig,
@@ -8,8 +20,8 @@ import {
   encodeSwapExecutor,
   isEncodeUniswapCallback,
 } from './aggregator'
-import { providers, routerUri, ZERO_HEX } from './config'
-import { GetSwapParametersParams, SwapV2Parameters } from './types'
+import { ETHER_ADDRESS, providers, routerUri, ZERO_HEX } from './config'
+import { GetSwapParametersCustomTradeRouteParams, GetSwapParametersParams, SwapV2Parameters } from './types'
 
 import {
   getAggregationExecutorAddress,
@@ -51,42 +63,92 @@ export async function getTradeExactInV2(
 }
 
 export default async function getSwapParameters({
-  currencyAmountIn,
-  currencyOut,
-  saveGas,
   chainId,
-  options,
+  currencyInAddress,
+  currencyInDecimal,
+  amountIn,
+  currencyOutAddress,
+  currencyOutDecimal,
+  tradeConfig,
   feeConfig,
-  customTradeRoute,
 }: GetSwapParametersParams): Promise<SwapV2Parameters | undefined> {
   const result = await getData({
-    currencyAmountIn,
-    currencyOut,
-    saveGas,
     chainId,
-    options,
+    currencyInAddress,
+    currencyInDecimal,
+    amountIn,
+    currencyOutAddress,
+    currencyOutDecimal,
+    tradeConfig,
     feeConfig,
-    customTradeRoute,
+    customTradeRoute: undefined,
   })
   return result.swapV2Parameters
 }
 
-export async function getData({
-  currencyAmountIn,
-  currencyOut,
-  saveGas,
+function parseInput({
   chainId,
-  options,
+  currencyInAddress,
+  currencyInDecimal,
+  amountIn,
+  currencyOutAddress,
+  currencyOutDecimal,
+  tradeConfig,
+}: GetSwapParametersParams): {
+  chainId: ChainId
+  currencyAmountIn: CurrencyAmount
+  currencyOut: Currency
+  options: TradeOptions | TradeOptionsDeadline
+  saveGas: boolean
+} {
+  const currencyAmountIn: CurrencyAmount =
+    currencyInAddress === ETHER_ADDRESS
+      ? CurrencyAmount.ether(amountIn)
+      : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
+  const currencyOut: Currency =
+    currencyOutAddress === ETHER_ADDRESS ? Currency.ETHER : new Token(chainId, currencyOutAddress, currencyOutDecimal)
+
+  return {
+    chainId: chainId as ChainId,
+    currencyAmountIn,
+    currencyOut,
+    options: {
+      allowedSlippage: new Percent(tradeConfig.allowedSlippage.toString(), '10000'),
+      recipient: tradeConfig.recipient,
+      deadline: tradeConfig.deadline,
+    },
+    saveGas: tradeConfig.saveGas,
+  }
+}
+
+export async function getData({
+  chainId: _chainId,
+  currencyInAddress,
+  currencyInDecimal,
+  amountIn: _amountIn,
+  currencyOutAddress,
+  currencyOutDecimal,
+  tradeConfig,
   feeConfig,
   customTradeRoute,
-}: GetSwapParametersParams): Promise<{
+}: GetSwapParametersCustomTradeRouteParams): Promise<{
   outputAmount: string | undefined
   swapV2Parameters: SwapV2Parameters | undefined
   rawExecutorData: unknown
   isUseSwapSimpleMode: boolean | undefined
   tradeRoute: any[][] | undefined
 }> {
-  let trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
+  const { currencyAmountIn, currencyOut, options, saveGas, chainId } = parseInput({
+    chainId: _chainId,
+    currencyInAddress,
+    currencyInDecimal,
+    amountIn: _amountIn,
+    currencyOutAddress,
+    currencyOutDecimal,
+    tradeConfig,
+    feeConfig,
+  })
+  const trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
   if (!trade) {
     return {
       outputAmount: undefined,
