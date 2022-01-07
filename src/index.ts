@@ -94,6 +94,7 @@ function parseInput({
   currencyOutAddress,
   currencyOutDecimal,
   tradeConfig,
+  // @ts-ignore
   feeConfig,
 }: GetSwapParametersParams): {
   chainId: ChainId
@@ -112,6 +113,10 @@ function parseInput({
             : amountIn
         )
       : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
+  // const currencyAmountIn: CurrencyAmount =
+  //   currencyInAddress === ETHER_ADDRESS
+  //     ? CurrencyAmount.ether(amountIn)
+  //     : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
   const currencyOut: Currency =
     currencyOutAddress === ETHER_ADDRESS ? Currency.ETHER : new Token(chainId, currencyOutAddress, currencyOutDecimal)
 
@@ -354,18 +359,21 @@ export async function getData({
       } else {
         getSwapNormalModeArgs()
       }
+      // if (etherIn) {
+      //   if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
+      //     if (feeConfig.isInBps) {
+      //       value = BigNumber.from(amountIn)
+      //         .add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000))
+      //         .toHexString()
+      //     } else {
+      //       value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
+      //     }
+      //   } else {
+      //     value = amountIn
+      //   }
+      // }
       if (etherIn) {
-        if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
-          if (feeConfig.isInBps) {
-            value = BigNumber.from(amountIn)
-              .add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000))
-              .toHexString()
-          } else {
-            value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
-          }
-        } else {
-          value = amountIn
-        }
+        value = amountIn
       }
       break
     }

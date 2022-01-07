@@ -19,7 +19,7 @@ test('Get swapV2Parameters', async () => {
         },
         feeConfig: {
           isInBps: true,
-          feeAmount: '10', // 0.1%
+          feeAmount: '8', // 0.08%
           feeReceiver: '0xDa0D8fF1bE1F78c5d349722A5800622EA31CD5dd',
           chargeFeeBy: 'currency_in',
         },
