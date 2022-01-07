@@ -2,7 +2,7 @@ export interface FeeConfig {
   chargeFeeBy: 'currency_in' | 'currency_out'
   feeReceiver: string
   isInBps: boolean
-  feeAmount: string
+  feeAmount: string // Unit: bps or currency amount
 }
 
 /**
