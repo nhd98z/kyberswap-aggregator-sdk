@@ -38,7 +38,7 @@ test('the fetch fails with an error', async () => {
         saveGas: false,
         chainId: ChainId.BSCMAINNET,
         options: {
-          allowedSlippage: new Percent('500', '10000'),
+          allowedSlippage: new Percent('1000', '10000'),
           recipient: '0x16368dD7e94f177B8C2c028Ef42289113D328121',
           deadline: 1640937396000000000,
         },
