@@ -1,4 +1,3 @@
-import { BigNumber } from 'ethers'
 import invariant from 'tiny-invariant'
 import {
   ChainId,
@@ -30,6 +29,8 @@ import {
   toHex,
   toSwapAddress,
 } from './utils'
+import { ethers } from 'ethers'
+import BigNumber from 'bignumber.js'
 
 /**
  * Returns the best trade for the exact amount of tokens in to the given token out
@@ -103,16 +104,6 @@ function parseInput({
   options: TradeOptions | TradeOptionsDeadline
   saveGas: boolean
 } {
-  // const currencyAmountIn: CurrencyAmount =
-  //   currencyInAddress === ETHER_ADDRESS
-  //     ? CurrencyAmount.ether(
-  //         feeConfig && feeConfig.chargeFeeBy === 'currency_in'
-  //           ? feeConfig.isInBps
-  //             ? BigNumber.from(amountIn).add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000)).toString()
-  //             : BigNumber.from(amountIn).add(feeConfig.feeAmount).toString()
-  //           : amountIn
-  //       )
-  //     : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
   const currencyAmountIn: CurrencyAmount =
     currencyInAddress === ETHER_ADDRESS
       ? CurrencyAmount.ether(amountIn)
@@ -181,6 +172,15 @@ export async function getData({
   const tokenIn: string = toSwapAddress(trade.inputAmount)
   const tokenOut: string = toSwapAddress(trade.outputAmount)
   const amountIn: string = toHex(trade.maximumAmountIn(options.allowedSlippage))
+  const amountInWithFeeIn: string =
+    feeConfig && feeConfig.chargeFeeBy === 'currency_in'
+      ? feeConfig.isInBps
+        ? '0x' +
+          new BigNumber(_amountIn)
+            .div(new BigNumber(1).minus(new BigNumber(feeConfig.feeAmount).div(10000)))
+            .toString(16)
+        : '0x' + new BigNumber(amountIn).plus(feeConfig.feeAmount).toString(16)
+      : amountIn
   const amountOut: string = toHex(trade.minimumAmountOut(options.allowedSlippage))
   const deadline =
     'ttl' in options
@@ -217,8 +217,8 @@ export async function getData({
       const src: { [p: string]: BigNumber } = {}
       const isEncodeUniswap = isEncodeUniswapCallback(chainId ?? ChainId.MAINNET)
       if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
-        const { feeReceiver, isInBps, feeAmount } = feeConfig
-        src[feeReceiver] = isInBps ? BigNumber.from(amountIn).mul(feeAmount).div('10000') : BigNumber.from(feeAmount)
+        const { feeReceiver } = feeConfig
+        src[feeReceiver] = new BigNumber(amountInWithFeeIn).minus(amountIn)
       }
       // Use swap simple mode when tokenIn is not ETH and every firstPool is encoded by uniswap.
       isUseSwapSimpleMode = !etherIn
@@ -266,9 +266,9 @@ export async function getData({
           }
         })
         const swapSequences = encodeSwapExecutor(tradeRoute, chainId ?? ChainId.MAINNET)
-        const sumSrcAmounts = Object.values(src).reduce((sum, value) => sum.add(value), BigNumber.from('0'))
-        const sumFirstSwapAmounts = firstSwapAmounts.reduce((sum, value) => sum.add(value), BigNumber.from('0'))
-        const amount = sumSrcAmounts.add(sumFirstSwapAmounts).toString()
+        const sumSrcAmounts = Object.values(src).reduce((sum, value) => sum.plus(value), new BigNumber('0'))
+        const sumFirstSwapAmounts = firstSwapAmounts.reduce((sum, value) => sum.plus(value), new BigNumber('0'))
+        const amount = sumSrcAmounts.plus(sumFirstSwapAmounts).toString()
         const swapDesc = [
           tokenIn,
           tokenOut,
@@ -309,7 +309,7 @@ export async function getData({
                 if (isEncodeUniswap(firstPool)) {
                   firstPool.collectAmount = firstPool.swapAmount
                 }
-                src[aggregationExecutorAddress] = BigNumber.from(firstPool.swapAmount).add(
+                src[aggregationExecutorAddress] = new BigNumber(firstPool.swapAmount).plus(
                   src[aggregationExecutorAddress] ?? '0'
                 )
               }
@@ -341,7 +341,14 @@ export async function getData({
           Object.keys(src), // srcReceivers
           Object.values(src).map((amount) => amount.toString()), // srcAmounts
           to,
-          amountIn,
+          feeConfig && feeConfig.chargeFeeBy === 'currency_in'
+            ? feeConfig.isInBps
+              ? '0x' +
+                new BigNumber(_amountIn)
+                  .div(new BigNumber(1).minus(new BigNumber(feeConfig.feeAmount).div(10000)))
+                  .toString(16)
+              : ethers.BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
+            : amountIn,
           amountOut,
           etherIn ? numberToHex(0) : numberToHex(4),
           destTokenFeeData,
@@ -361,20 +368,11 @@ export async function getData({
       }
       if (etherIn) {
         if (feeConfig && feeConfig.chargeFeeBy === 'currency_in') {
-          if (feeConfig.isInBps) {
-            value = BigNumber.from(amountIn)
-              .add(BigNumber.from(amountIn).mul(feeConfig.feeAmount).div(10000))
-              .toHexString()
-          } else {
-            value = BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
-          }
+          value = amountInWithFeeIn
         } else {
           value = amountIn
         }
       }
-      // if (etherIn) {
-      //   value = amountIn
-      // }
       break
     }
   }
