@@ -56,10 +56,10 @@ export async function getTradeExactInV2(
 export default async function getSwapParameters({
   chainId,
   currencyInAddress,
-  currencyInDecimal,
+  currencyInDecimals,
   amountIn,
   currencyOutAddress,
-  currencyOutDecimal,
+  currencyOutDecimals,
   tradeConfig,
   feeConfig,
   customTradeRoute,
@@ -67,10 +67,10 @@ export default async function getSwapParameters({
   const result = await getData({
     chainId,
     currencyInAddress,
-    currencyInDecimal,
+    currencyInDecimals,
     amountIn,
     currencyOutAddress,
-    currencyOutDecimal,
+    currencyOutDecimals,
     tradeConfig,
     feeConfig,
     customTradeRoute,
@@ -81,10 +81,10 @@ export default async function getSwapParameters({
 function parseInput({
   chainId,
   currencyInAddress,
-  currencyInDecimal,
+  currencyInDecimals,
   amountIn,
   currencyOutAddress,
-  currencyOutDecimal,
+  currencyOutDecimals,
 }: GetSwapParametersParams): {
   chainId: ChainId
   currencyAmountIn: CurrencyAmount
@@ -93,9 +93,9 @@ function parseInput({
   const currencyAmountIn: CurrencyAmount =
     currencyInAddress === ETHER_ADDRESS
       ? CurrencyAmount.ether(amountIn)
-      : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimal), amountIn)
+      : new TokenAmount(new Token(chainId, currencyInAddress, currencyInDecimals), amountIn)
   const currencyOut: Currency =
-    currencyOutAddress === ETHER_ADDRESS ? Currency.ETHER : new Token(chainId, currencyOutAddress, currencyOutDecimal)
+    currencyOutAddress === ETHER_ADDRESS ? Currency.ETHER : new Token(chainId, currencyOutAddress, currencyOutDecimals)
 
   return {
     chainId: chainId as ChainId,
@@ -107,10 +107,10 @@ function parseInput({
 export async function getData({
   chainId: _chainId,
   currencyInAddress,
-  currencyInDecimal,
+  currencyInDecimals,
   amountIn: _amountIn,
   currencyOutAddress,
-  currencyOutDecimal,
+  currencyOutDecimals,
   tradeConfig,
   feeConfig,
   customTradeRoute,
@@ -123,10 +123,10 @@ export async function getData({
   const { currencyAmountIn, currencyOut, chainId } = parseInput({
     chainId: _chainId,
     currencyInAddress,
-    currencyInDecimal,
+    currencyInDecimals,
     amountIn: _amountIn,
     currencyOutAddress,
-    currencyOutDecimal,
+    currencyOutDecimals,
     tradeConfig,
     feeConfig,
   })

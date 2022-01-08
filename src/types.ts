@@ -23,10 +23,10 @@ export interface TradeConfig {
 export interface GetSwapParametersParams {
   chainId: number
   currencyInAddress: string
-  currencyInDecimal: number
+  currencyInDecimals: number
   amountIn: string
   currencyOutAddress: string
-  currencyOutDecimal: number
+  currencyOutDecimals: number
   tradeConfig: TradeConfig
   feeConfig: FeeConfig | undefined
 }
