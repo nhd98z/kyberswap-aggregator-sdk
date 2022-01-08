@@ -363,4 +363,5 @@ export async function getData({
   }
 }
 
-export { ETHER_ADDRESS } from './config/index'
+export * from './config/index'
+export * from './types'
