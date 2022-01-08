@@ -20,7 +20,6 @@ import { ETHER_ADDRESS, providers, routerUri, ZERO_HEX } from './config'
 import { GetSwapParametersCustomTradeRouteParams, GetSwapParametersParams, SwapV2Parameters } from './types'
 
 import { getAggregationExecutorAddress, getAggregationExecutorContract, numberToHex, toSwapAddress } from './utils'
-import { ethers } from 'ethers'
 import BigNumber from 'bignumber.js'
 
 /**
@@ -322,7 +321,7 @@ export async function getData({
                 new BigNumber(_amountIn)
                   .div(new BigNumber(1).minus(new BigNumber(feeConfig.feeAmount).div(10000)))
                   .toString(16)
-              : ethers.BigNumber.from(amountIn).add(feeConfig.feeAmount).toHexString()
+              : '0x' + new BigNumber(amountIn).plus(feeConfig.feeAmount).toString(16)
             : amountIn,
           amountOut,
           etherIn ? numberToHex(0) : numberToHex(4),
