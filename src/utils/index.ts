@@ -22,10 +22,6 @@ export function toSwapAddress(currencyAmount: CurrencyAmount) {
   return currencyAmount instanceof TokenAmount ? currencyAmount.token.address : ''
 }
 
-export function toHex(currencyAmount: CurrencyAmount) {
-  return `0x${currencyAmount.raw.toString(16)}`
-}
-
 export function getAggregationExecutorAddress(chainId: ChainId): string {
   return AGGREGATION_EXECUTOR[chainId] || ''
 }

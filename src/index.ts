@@ -4,11 +4,8 @@ import {
   Currency,
   CurrencyAmount,
   ETHER,
-  Percent,
   Token,
   TokenAmount,
-  TradeOptions,
-  TradeOptionsDeadline,
   TradeType,
   validateAndParseAddress,
 } from '@dynamic-amm/sdk'
@@ -22,13 +19,7 @@ import {
 import { ETHER_ADDRESS, providers, routerUri, ZERO_HEX } from './config'
 import { GetSwapParametersCustomTradeRouteParams, GetSwapParametersParams, SwapV2Parameters } from './types'
 
-import {
-  getAggregationExecutorAddress,
-  getAggregationExecutorContract,
-  numberToHex,
-  toHex,
-  toSwapAddress,
-} from './utils'
+import { getAggregationExecutorAddress, getAggregationExecutorContract, numberToHex, toSwapAddress } from './utils'
 import { ethers } from 'ethers'
 import BigNumber from 'bignumber.js'
 
@@ -72,7 +63,8 @@ export default async function getSwapParameters({
   currencyOutDecimal,
   tradeConfig,
   feeConfig,
-}: GetSwapParametersParams): Promise<SwapV2Parameters | undefined> {
+  customTradeRoute,
+}: GetSwapParametersCustomTradeRouteParams): Promise<SwapV2Parameters | undefined> {
   const result = await getData({
     chainId,
     currencyInAddress,
@@ -82,7 +74,7 @@ export default async function getSwapParameters({
     currencyOutDecimal,
     tradeConfig,
     feeConfig,
-    customTradeRoute: undefined,
+    customTradeRoute,
   })
   return result.swapV2Parameters
 }
@@ -94,15 +86,10 @@ function parseInput({
   amountIn,
   currencyOutAddress,
   currencyOutDecimal,
-  tradeConfig,
-  // @ts-ignore
-  feeConfig,
 }: GetSwapParametersParams): {
   chainId: ChainId
   currencyAmountIn: CurrencyAmount
   currencyOut: Currency
-  options: TradeOptions | TradeOptionsDeadline
-  saveGas: boolean
 } {
   const currencyAmountIn: CurrencyAmount =
     currencyInAddress === ETHER_ADDRESS
@@ -115,12 +102,6 @@ function parseInput({
     chainId: chainId as ChainId,
     currencyAmountIn,
     currencyOut,
-    options: {
-      allowedSlippage: new Percent(tradeConfig.allowedSlippage.toString(), '10000'),
-      recipient: tradeConfig.recipient,
-      deadline: tradeConfig.deadline,
-    },
-    saveGas: tradeConfig.saveGas,
   }
 }
 
@@ -135,13 +116,12 @@ export async function getData({
   feeConfig,
   customTradeRoute,
 }: GetSwapParametersCustomTradeRouteParams): Promise<{
-  outputAmount: string | undefined
   swapV2Parameters: SwapV2Parameters | undefined
   rawExecutorData: unknown
   isUseSwapSimpleMode: boolean | undefined
   tradeRoute: any[][] | undefined
 }> {
-  const { currencyAmountIn, currencyOut, options, saveGas, chainId } = parseInput({
+  const { currencyAmountIn, currencyOut, chainId } = parseInput({
     chainId: _chainId,
     currencyInAddress,
     currencyInDecimal,
@@ -151,10 +131,9 @@ export async function getData({
     tradeConfig,
     feeConfig,
   })
-  const trade = await getTradeExactInV2(currencyAmountIn, currencyOut, saveGas, chainId)
+  const trade = await getTradeExactInV2(currencyAmountIn, currencyOut, false, chainId)
   if (!trade) {
     return {
-      outputAmount: undefined,
       swapV2Parameters: undefined,
       rawExecutorData: undefined,
       isUseSwapSimpleMode: undefined,
@@ -166,12 +145,11 @@ export async function getData({
   const etherOut = trade.outputAmount.currency === ETHER
   // the router does not support both ether in and out
   invariant(!(etherIn && etherOut), 'ETHER_IN_OUT')
-  invariant(!('ttl' in options) || options.ttl > 0, 'TTL')
 
-  const to: string = validateAndParseAddress(options.recipient)
+  const to: string = validateAndParseAddress(tradeConfig.recipient)
   const tokenIn: string = toSwapAddress(trade.inputAmount)
   const tokenOut: string = toSwapAddress(trade.outputAmount)
-  const amountIn: string = toHex(trade.maximumAmountIn(options.allowedSlippage))
+  const amountIn: string = '0x' + new BigNumber(_amountIn).toString(16)
   const amountInWithFeeIn: string =
     feeConfig && feeConfig.chargeFeeBy === 'currency_in'
       ? feeConfig.isInBps
@@ -181,11 +159,8 @@ export async function getData({
             .toString(16)
         : '0x' + new BigNumber(amountIn).plus(feeConfig.feeAmount).toString(16)
       : amountIn
-  const amountOut: string = toHex(trade.minimumAmountOut(options.allowedSlippage))
-  const deadline =
-    'ttl' in options
-      ? `0x${(Math.floor(new Date().getTime() / 1000) + options.ttl).toString(16)}`
-      : `0x${options.deadline.toString(16)}`
+  const amountOut: string = '0x' + new BigNumber(tradeConfig.minAmountOut)
+  const deadline = '0x' + tradeConfig.deadline.toString(16)
   const destTokenFeeData =
     feeConfig && feeConfig.chargeFeeBy === 'currency_out'
       ? encodeFeeConfig({
@@ -383,7 +358,6 @@ export async function getData({
       args,
       value,
     },
-    outputAmount: trade.outputAmount.raw.toString(),
     isUseSwapSimpleMode,
     rawExecutorData,
     tradeRoute,
