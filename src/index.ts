@@ -158,7 +158,7 @@ export async function getData({
             .toString(16)
         : '0x' + new BigNumber(amountIn).plus(feeConfig.feeAmount).toString(16)
       : amountIn
-  const amountOut: string = '0x' + new BigNumber(tradeConfig.minAmountOut)
+  const amountOut: string = '0x' + new BigNumber(tradeConfig.minAmountOut).toString(16)
   const deadline = '0x' + tradeConfig.deadline.toString(16)
   const destTokenFeeData =
     feeConfig && feeConfig.chargeFeeBy === 'currency_out'
