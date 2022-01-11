@@ -47,12 +47,12 @@ export const routerUri: { [chainId in ChainId]?: string } = {
 }
 
 export const AGGREGATION_EXECUTOR: { [chainId in ChainId]?: string } = {
-  [ChainId.BSCMAINNET]: '0x0E4C34336bf64581cf4dFA658D13a7067888B5a1',
-  [ChainId.MATIC]: '0x0E4C34336bf64581cf4dFA658D13a7067888B5a1',
-  [ChainId.AVAXMAINNET]: '0x0E4C34336bf64581cf4dFA658D13a7067888B5a1',
-  [ChainId.MAINNET]: '0x0E4C34336bf64581cf4dFA658D13a7067888B5a1',
-  [ChainId.FANTOM]: '0x0E4C34336bf64581cf4dFA658D13a7067888B5a1',
-  [ChainId.CRONOS]: '0x0E4C34336bf64581cf4dFA658D13a7067888B5a1',
+  [ChainId.BSCMAINNET]: '0xd12bcdfb9a39be79da3bdf02557efdcd5ca59e77',
+  [ChainId.MATIC]: '0xd12bcdfb9a39be79da3bdf02557efdcd5ca59e77',
+  [ChainId.AVAXMAINNET]: '0xd12bcdfb9a39be79da3bdf02557efdcd5ca59e77',
+  [ChainId.MAINNET]: '0xd12bcdfb9a39be79da3bdf02557efdcd5ca59e77',
+  [ChainId.FANTOM]: '0xd12bcdfb9a39be79da3bdf02557efdcd5ca59e77',
+  [ChainId.CRONOS]: '0xd12bcdfb9a39be79da3bdf02557efdcd5ca59e77',
 }
 
 export const ETHER_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
